@@ -472,6 +472,7 @@ bool PylonROS2CameraImpl<CameraTrait>::grab(std::vector<uint8_t>& image, rclcpp:
             else
             {
                 stamp = rclcpp::Time(static_cast<uint64_t>(ptr_grab_result->ChunkTimestamp.GetValue()));
+                // RCLCPP_INFO_STREAM(LOGGER_BASE, "Using Chunk Timestamp");
             }
         }
         catch (const GenICam::GenericException &e)
@@ -3575,9 +3576,9 @@ std::string PylonROS2CameraImpl<CameraTraitT>::setChunkModeActive(const bool& en
     {
         try
         {
-            //cam_->StopGrabbing();
+            // cam_->StopGrabbing();
             cam_->ChunkModeActive.SetValue(enable);
-            //grabbingStarting();
+            // grabbingStarting();
 
             if (enable)
                 RCLCPP_DEBUG(LOGGER_BASE, "Chunk mode active enabled");
@@ -3948,7 +3949,10 @@ std::string PylonROS2CameraImpl<CameraTraitT>::setChunkEnable(const bool& enable
     {
         try
         {
+            cam_->StopGrabbing();
             cam_->ChunkEnable.SetValue(enable);
+            grabbingStarting();
+            
             if (enable)
                 RCLCPP_DEBUG(LOGGER_BASE, "Chunk enable enabled");
             else
@@ -4829,7 +4833,7 @@ std::string PylonROS2CameraImpl<CameraTraitT>::getPTPStatus(int64_t& offset_from
 
     try
     {
-        if (GenApi::IsAvailable(cam_->PtpServoStatus))
+        if (GenApi::IsAvailable(cam_->PtpDataSetLatch))
         {
             cam_->PtpDataSetLatch();
             Basler_UniversalCameraParams::PtpStatusEnums status_enum = cam_->PtpStatus.GetValue();
@@ -4841,14 +4845,32 @@ std::string PylonROS2CameraImpl<CameraTraitT>::getPTPStatus(int64_t& offset_from
 
             return "done";
         }
+        else if (GenApi::IsAvailable(cam_->GevIEEE1588Status))
+        {
+            cam_->GevIEEE1588DataSetLatch();
+            status = cam_->GevIEEE1588StatusLatched.ToString();
+            servo_status = cam_->GevIEEE1588Status.ToString();
+            if (GenApi::IsAvailable(cam_->GevIEEE1588OffsetFromMaster))
+            {
+                offset_from_master = cam_->GevIEEE1588OffsetFromMaster.GetValue();
+            }
+            return "done";
+        }
         else
         {
-            RCLCPP_DEBUG_STREAM(LOGGER_BASE, "Error while trying to get ptp status. The connected camera does not support this feature.");
-            return "The connected camera does not support this feature";
+            RCLCPP_DEBUG_STREAM(LOGGER_BASE, "PTP not available on this camera");
+            return "PTP not available on this camera";
         }
     }
     catch (const GenICam::GenericException &e)
     {
+        std::string err_msg = std::string(e.GetDescription());
+        if (err_msg.find("not readable") != std::string::npos || 
+            err_msg.find("not available") != std::string::npos)
+        {
+            RCLCPP_DEBUG_STREAM(LOGGER_BASE, "PTP status not readable. Is PTP enabled on the camera?");
+            return "PTP status not readable. Try enabling PTP first with 'enable_ptp' service.";
+        }
         RCLCPP_ERROR_STREAM(LOGGER_BASE, "An exception while getting PTP status:" << e.GetDescription());
         return e.GetDescription();
     }

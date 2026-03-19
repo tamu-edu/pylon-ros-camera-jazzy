@@ -78,7 +78,11 @@ PylonROS2CameraParameter::PylonROS2CameraParameter() :
     device_user_id_(""),
     frame_rate_(5.0),
     camera_info_url_(""),
-    image_encoding_("")
+    image_encoding_(""),
+    enable_ptp_(false),
+    chunk_mode_active_(false),
+    chunk_selector_(29),
+    chunk_enable_(false)
 {
     // information logging severity mode
     //rcutils_ret_t __attribute__((unused)) res = rcutils_logging_set_logger_level(LOGGER.get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
@@ -591,6 +595,43 @@ void PylonROS2CameraParameter::validateParameterSet(rclcpp::Node& nh)
         RCLCPP_WARN_STREAM(LOGGER, "The specified exposure search timeout value - " << this->exposure_search_timeout_ << " - is too low!"
                                 << "-> Exposure search may fail.");
     }
+
+    // PTP synchronization (GigE cameras only)
+    RCLCPP_DEBUG(LOGGER, "---> enable_ptp");
+    if (!nh.has_parameter("enable_ptp"))
+    {
+        nh.declare_parameter<bool>("enable_ptp", false);
+    }
+    nh.get_parameter("enable_ptp", this->enable_ptp_);
+
+    // Chunk mode for timestamp capture
+    RCLCPP_DEBUG(LOGGER, "---> chunk_mode_active");
+    if (!nh.has_parameter("chunk_mode_active"))
+    {
+        nh.declare_parameter<bool>("chunk_mode_active", false);
+    }
+    nh.get_parameter("chunk_mode_active", this->chunk_mode_active_);
+
+    // Chunk selector (default: 29 = Timestamp)
+    RCLCPP_DEBUG(LOGGER, "---> chunk_selector");
+    if (!nh.has_parameter("chunk_selector"))
+    {
+        nh.declare_parameter<int>("chunk_selector", 29);
+    }
+    nh.get_parameter("chunk_selector", this->chunk_selector_);
+
+    // Chunk enable (default: true)
+    RCLCPP_DEBUG(LOGGER, "---> chunk_enable");
+    if (!nh.has_parameter("chunk_enable"))
+    {
+        nh.declare_parameter<bool>("chunk_enable", false);
+    }
+    nh.get_parameter("chunk_enable", this->chunk_enable_);
+
+    RCLCPP_INFO_STREAM(LOGGER, "PTP: " << (this->enable_ptp_ ? "enabled" : "disabled") 
+                        << ", Chunk mode: " << (this->chunk_mode_active_ ? "enabled" : "disabled")
+                        << ", Chunk selector: " << this->chunk_selector_
+                        << ", Chunk enable: " << (this->chunk_enable_ ? "enabled" : "disabled"));
 }
 
 const std::string& PylonROS2CameraParameter::deviceUserID() const

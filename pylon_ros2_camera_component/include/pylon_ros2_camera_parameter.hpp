@@ -334,6 +334,25 @@ public:
     */
     int grab_strategy_;
 
+    /**
+    * Enable PTP synchronization at startup (GigE cameras only)
+    */
+    bool enable_ptp_;
+
+    /**
+    * Enable chunk mode at startup (for timestamp capture)
+    */
+    bool chunk_mode_active_;
+
+    /**
+    * Chunk selector value (default: 29 = Timestamp)
+    */
+    int chunk_selector_;
+
+    /**
+    * Enable chunk data capture (requires chunk_mode_active to be true)
+    */
+    bool chunk_enable_;
 
 protected:
     /**

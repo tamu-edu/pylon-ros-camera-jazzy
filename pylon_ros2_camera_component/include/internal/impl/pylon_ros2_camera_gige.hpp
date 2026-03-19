@@ -440,6 +440,62 @@ bool PylonROS2GigECamera::applyCamSpecificStartupSettings(const PylonROS2CameraP
 
             RCLCPP_INFO(LOGGER_GIGE, "CurrentSetting loaded");
         }
+
+        // Apply PTP settings if enabled
+        if (parameters.enable_ptp_)
+        {
+            try
+            {
+                if (GenApi::IsAvailable(cam_->GevIEEE1588))
+                {
+                    cam_->GevIEEE1588.SetValue(true);
+                    RCLCPP_INFO(LOGGER_GIGE, "PTP enabled successfully");
+                }
+                else
+                {
+                    RCLCPP_WARN(LOGGER_GIGE, "PTP not available on this camera");
+                }
+            }
+            catch (const GenICam::GenericException& e)
+            {
+                RCLCPP_WARN_STREAM(LOGGER_GIGE, "Failed to enable PTP: " << e.GetDescription());
+            }
+        }
+
+        // Apply chunk mode settings if enabled
+        if (parameters.chunk_mode_active_)
+        {
+            try
+            {
+                if (GenApi::IsAvailable(cam_->ChunkModeActive))
+                {
+                    cam_->ChunkModeActive.SetValue(true);
+
+                    RCLCPP_INFO_STREAM(LOGGER_GIGE, "Chunk mode enabled: " << cam_->ChunkModeActive.GetValue());
+                    
+                    // Set the chunk selector
+                    if (GenApi::IsAvailable(cam_->ChunkSelector))
+                    {
+                        cam_->ChunkSelector.SetValue(Basler_UniversalCameraParams::ChunkSelectorEnums(parameters.chunk_selector_));
+                        
+                        // Enable the selected chunk
+                        if (GenApi::IsAvailable(cam_->ChunkEnable))
+                        {
+                            cam_->ChunkEnable.SetValue(parameters.chunk_enable_);
+                            RCLCPP_INFO_STREAM(LOGGER_GIGE, "Chunk mode enabled with selector: " << cam_->ChunkSelector.GetValue() << ", enable: " << cam_->ChunkEnable.GetValue());
+                        }
+                    }
+                }
+                else
+                {
+                    RCLCPP_WARN(LOGGER_GIGE, "Chunk mode not available on this camera");
+                }
+            }
+            catch (const GenICam::GenericException& e)
+            {
+                RCLCPP_WARN_STREAM(LOGGER_GIGE, "Failed to enable chunk mode: " << e.GetDescription());
+            }
+        }
     }
     catch ( const GenICam::GenericException &e )
     {
