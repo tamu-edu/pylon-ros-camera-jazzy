@@ -62,14 +62,6 @@ def _launch_node(context: LaunchContext):
                         'enable_status_publisher': enable_status_publisher,
                         'enable_current_params_publisher': enable_current_params_publisher,
 
-                        # ffmpeg raw params
-                        'pylon_ros2_camera_node.image_raw.ffmpeg.encoder': "h264_nvenc",
-                        'pylon_ros2_camera_node.image_raw.ffmpeg.bit_rate': 4000000,
-                        'pylon_ros2_camera_node.image_raw.ffmpeg.preset': "p1",
-                        'pylon_ros2_camera_node.image_raw.ffmpeg.tune': "ull",
-                        'pylon_ros2_camera_node.image_raw.ffmpeg.gop_size': 10,
-                        'pylon_ros2_camera_node.image_raw.ffmpeg.delay': 0,
-
                         # ffmpeg rect params
                         'pylon_ros2_camera_node.image_rect.ffmpeg.encoder': "h264_nvenc",
                         'pylon_ros2_camera_node.image_rect.ffmpeg.bit_rate': 4000000,
